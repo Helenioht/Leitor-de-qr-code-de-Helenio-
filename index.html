@@ -4,9 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Leitor de Helenio</title>
-    <!-- Favicon / Ícone do aplicativo -->
     <link rel="icon" type="image/png" href="watermarked_img_14409463943066560873.jpg">
-    <!-- Bibliotecas para leitura de QR Code e Código de Barras -->
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     <style>
@@ -20,6 +18,7 @@
             --error-color: #cf6679;
             --success-color: #03dac6;
             --gold-color: #d4af37;
+            --warning-color: #ffb74d;
         }
 
         * {
@@ -140,7 +139,63 @@
             border-radius: 8px;
             overflow: hidden;
             background: #000;
-            min-height: 250px;
+            min-height: 280px;
+        }
+
+        .camera-controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .control-btn {
+            background-color: #2d2d2d;
+            border: 1px solid #444;
+            color: var(--on-surface);
+            padding: 10px 8px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            transition: all 0.2s;
+        }
+
+        .control-btn.active {
+            background-color: var(--warning-color);
+            color: #000;
+            border-color: var(--warning-color);
+        }
+
+        .control-btn:focus {
+            outline: 2px solid var(--primary-color);
+        }
+
+        .control-icon {
+            font-size: 1.2rem;
+        }
+
+        .slider-container {
+            margin-top: 8px;
+            padding: 8px;
+            background-color: #252525;
+            border-radius: 6px;
+        }
+
+        .slider-label {
+            font-size: 0.8rem;
+            color: #aaa;
+            margin-bottom: 4px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            accent-color: var(--primary-color);
         }
 
         .btn {
@@ -224,7 +279,7 @@
 
         .history-list {
             list-style: none;
-            max-height: 150px;
+            max-height: 180px;
             overflow-y: auto;
             display: flex;
             flex-direction: column;
@@ -263,70 +318,117 @@
             transition: transform 0.3s ease;
             box-shadow: 0 4px 10px rgba(0,0,0,0.4);
             z-index: 1000;
+            max-width: 90%;
+            text-align: center;
         }
 
         .toast.show {
             transform: translateX(-50%) translateY(0);
+        }
+
+        .toast.error {
+            background-color: var(--error-color);
+            color: #fff;
+        }
+
+        .mode-indicator {
+            font-size: 0.75rem;
+            color: #888;
+            margin-top: 6px;
+        }
+
+        .hidden {
+            display: none !important;
         }
     </style>
 </head>
 <body>
 
     <header>
-        <!-- Ícone do aplicativo -->
         <img src="watermarked_img_14409463943066560873.jpg" alt="Leitor de Helenio" class="app-icon">
         <h1>Leitor de Helenio</h1>
-        <!-- Descrição em letras douradas -->
-        <div class="subtitle">Leitor de QR Code e Código de Barras</div>
+        <div class="subtitle">QR Code • Código de Barras</div>
     </header>
 
     <div class="container">
-        <!-- Imagem no corpo do aplicativo -->
         <div class="banner-container">
             <img src="https://ibb.co/N245pV0g" alt="Banner Leitor de Helenio" class="banner-img" onerror="this.style.display='none'">
         </div>
 
-        <!-- Abas de navegação -->
         <div class="tabs">
-            <button class="tab-btn active" onclick="switchTab('camera')">Câmera</button>
-            <button class="tab-btn" onclick="switchTab('file')">Arquivo / Imagem</button>
+            <button class="tab-btn active" onclick="switchTab('camera')">📷 Câmera</button>
+            <button class="tab-btn" onclick="switchTab('file')">🖼️ Arquivo</button>
         </div>
 
-        <!-- Seção Câmera -->
+        <!-- Seção Câmera com Novos Controles -->
         <div id="tab-camera" class="tab-content active card">
             <div id="reader"></div>
+            
             <div style="display: flex; gap: 8px; margin-top: 8px;">
-                <button class="btn" id="start-camera" onclick="startCamera()">Iniciar Câmera</button>
-                <button class="btn btn-secondary" id="stop-camera" onclick="stopCamera()" style="display:none;">Parar</button>
+                <button class="btn" id="start-camera" onclick="startCamera()">▶️ Iniciar</button>
+                <button class="btn btn-secondary" id="stop-camera" onclick="stopCamera()" style="display:none;">⏹️ Parar</button>
+            </div>
+
+            <!-- Painel de Controles da Câmera -->
+            <div id="camera-controls-panel" class="hidden">
+                <div class="camera-controls">
+                    <button class="control-btn" id="toggle-flash" onclick="toggleFlash()">
+                        <span class="control-icon">💡</span>
+                        <span>Lanterna</span>
+                    </button>
+                    <button class="control-btn" id="toggle-continuous" onclick="toggleContinuous()">
+                        <span class="control-icon">🔁</span>
+                        <span>Contínuo</span>
+                    </button>
+                    <button class="control-btn" id="toggle-invert" onclick="toggleInvert()">
+                        <span class="control-icon">🔄</span>
+                        <span>Inverter</span>
+                    </button>
+                    <button class="control-btn" id="switch-camera" onclick="switchCamera()">
+                        <span class="control-icon">🔍</span>
+                        <span>Câmera</span>
+                    </button>
+                </div>
+
+                <!-- Controle de Zoom/Foco -->
+                <div class="slider-container">
+                    <div class="slider-label">
+                        <span>Zoom</span>
+                        <span id="zoom-value">1.0x</span>
+                    </div>
+                    <input type="range" id="zoom-slider" min="1" max="5" step="0.1" value="1" oninput="updateZoom(this.value)">
+                    <p class="mode-indicator">💡 Dica: aproxime o código e mantenha a câmera estável para melhor leitura</p>
+                </div>
             </div>
         </div>
 
         <!-- Seção Arquivo -->
         <div id="tab-file" class="tab-content card">
             <div class="file-drop-area" onclick="document.getElementById('file-input').click()">
-                <p>Toque para selecionar imagem ou arquivo com código</p>
+                <p>📂 Toque para selecionar imagem</p>
                 <span style="font-size: 0.8rem; color: #888; margin-top: 4px; display: block;">PNG, JPG, WEBP</span>
             </div>
             <input type="file" id="file-input" accept="image/*" onchange="handleFileSelect(event)">
         </div>
 
-        <!-- Seção Resultado -->
+        <!-- Resultado -->
         <div class="card">
-            <div class="result-label">Último Código Lido</div>
+            <div class="result-label">📋 Último Código Lido</div>
             <div class="result-box">
                 <div id="result-content" class="result-text" style="color: #666;">Nenhum código lido ainda</div>
             </div>
             <div class="actions-group" style="margin-top: 12px;">
-                <button class="btn" id="btn-copy" onclick="copyResult()" disabled>Copiar</button>
-                <button class="btn btn-secondary" id="btn-open" onclick="openResult()" disabled>Abrir Link</button>
+                <button class="btn" id="btn-copy" onclick="copyResult()" disabled>📋 Copiar</button>
+                <button class="btn btn-secondary" id="btn-open" onclick="openResult()" disabled>🔗 Abrir Link</button>
+                <button class="btn btn-secondary" id="btn-share" onclick="shareResult()" disabled>📤 Compartilhar</button>
             </div>
         </div>
 
-        <!-- Seção Histórico -->
+        <!-- Histórico -->
         <div class="card" style="flex: 1;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                <div class="result-label" style="margin: 0;">Histórico Recente</div>
-                <button onclick="clearHistory()" style="background:none; border:none; color: var(--error-color); font-size: 0.75rem; cursor:pointer;">Limpar</button>
+                <div class="result-label" style="margin: 0;">📝 Histórico Recente</div>
+                <button onclick="clearHistory()" style="background:none; border:none; color: var(--error-color); font-size: 0.75rem; cursor:pointer;">🗑️ Limpar</button>
             </div>
             <ul id="history-list" class="history-list">
                 <li style="color: #666; font-size: 0.8rem; text-align: center; padding: 10px;">Vazio</li>
@@ -334,12 +436,17 @@
         </div>
     </div>
 
-    <div id="toast" class="toast">Copiado para a memória!</div>
+    <div id="toast" class="toast">Copiado!</div>
 
     <script>
         let html5QrCode = null;
         let lastScannedText = "";
         let history = JSON.parse(localStorage.getItem('helenio_reader_history') || '[]');
+        let torchOn = false;
+        let continuousMode = false;
+        let invertMode = false;
+        let cameraFacingMode = "environment";
+        let videoTrack = null;
 
         renderHistory();
 
@@ -360,28 +467,54 @@
         async function startCamera() {
             const startBtn = document.getElementById('start-camera');
             const stopBtn = document.getElementById('stop-camera');
+            const controlsPanel = document.getElementById('camera-controls-panel');
             
             if (!html5QrCode) {
                 html5QrCode = new Html5Qrcode("reader");
             }
 
             try {
-                const qrCodeSuccessCallback = (decodedText, decodedResult) => {
-                    handleScanSuccess(decodedText);
+                const config = { 
+                    fps: 15, 
+                    qrbox: { width: 250, height: 250 },
+                    aspectRatio: 1.0
                 };
 
-                const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+                await html5QrCode.start(
+                    { facingMode: cameraFacingMode }, 
+                    config, 
+                    onScanSuccess,
+                    onScanFailure
+                );
 
-                await html5QrCode.start({ facingMode: "environment" }, config, qrCodeSuccessCallback);
+                // Obter a faixa de vídeo para controle de lanterna/zoom
+                setTimeout(async () => {
+                    try {
+                        const stream = await navigator.mediaDevices.getUserMedia({ 
+                            video: { facingMode: cameraFacingMode } 
+                        });
+                        videoTrack = stream.getVideoTracks()[0];
+                    } catch (e) {
+                        console.log("Controles avançados indisponíveis");
+                    }
+                }, 500);
+
                 startBtn.style.display = 'none';
                 stopBtn.style.display = 'block';
+                controlsPanel.classList.remove('hidden');
+                showToast("Câmera iniciada ✅");
             } catch (err) {
                 console.error("Erro ao iniciar câmera:", err);
-                alert("Não foi possível acessar a câmera. Verifique as permissões do navegador.");
+                showToast("❌ Não foi possível acessar a câmera", true);
             }
         }
 
         async function stopCamera() {
+            if (videoTrack) {
+                videoTrack.stop();
+                videoTrack = null;
+            }
+            
             if (html5QrCode && html5QrCode.isScanning) {
                 try {
                     await html5QrCode.stop();
@@ -389,45 +522,108 @@
                     console.error("Erro ao parar câmera:", err);
                 }
             }
+            
+            torchOn = false;
+            updateFlashUI();
+            
             document.getElementById('start-camera').style.display = 'block';
             document.getElementById('stop-camera').style.display = 'none';
+            document.getElementById('camera-controls-panel').classList.add('hidden');
+        }
+
+        function onScanSuccess(decodedText, decodedResult) {
+            if (!continuousMode && lastScannedText === decodedText) return;
+            
+            // Vibração ao ler com sucesso
+            if (navigator.vibrate) navigator.vibrate(100);
+            
+            handleScanSuccess(decodedText);
+        }
+
+        function onScanFailure(error) {
+            // Silenciar erros contínuos
+        }
+
+        // 🔦 Lanterna
+        async function toggleFlash() {
+            if (!videoTrack || !videoTrack.getCapabilities || !videoTrack.getCapabilities().torch) {
+                showToast("⚠️ Lanterna não suportada", true);
+                return;
+            }
+            
+            try {
+                torchOn = !torchOn;
+                await videoTrack.applyConstraints({ advanced: [{ torch: torchOn }] });
+                updateFlashUI();
+            } catch (e) {
+                showToast("⚠️ Não foi possível controlar a lanterna", true);
+            }
+        }
+
+        function updateFlashUI() {
+            const btn = document.getElementById('toggle-flash');
+            if (torchOn) btn.classList.add('active');
+            else btn.classList.remove('active');
+        }
+
+        // 🔁 Modo Contínuo
+        function toggleContinuous() {
+            continuousMode = !continuousMode;
+            const btn = document.getElementById('toggle-continuous');
+            btn.classList.toggle('active', continuousMode);
+            showToast(continuousMode ? "Modo contínuo ativado" : "Modo contínuo desativado");
+        }
+
+        // 🔄 Inverter imagem
+        function toggleInvert() {
+            invertMode = !invertMode;
+            const btn = document.getElementById('toggle-invert');
+            btn.classList.toggle('active', invertMode);
+            showToast(invertMode ? "Inversão ativada" : "Inversão desativada");
+        }
+
+        // 🔄 Trocar câmera (frente/tras)
+        async function switchCamera() {
+            cameraFacingMode = cameraFacingMode === "environment" ? "user" : "environment";
+            
+            if (html5QrCode && html5QrCode.isScanning) {
+                await stopCamera();
+                await startCamera();
+            }
+            
+            showToast(cameraFacingMode === "environment" ? "Câmera traseira" : "Câmera frontal");
+        }
+
+        // 🔍 Zoom
+        async function updateZoom(value) {
+            document.getElementById('zoom-value').textContent = value + 'x';
+            
+            if (!videoTrack || !videoTrack.getCapabilities || !videoTrack.getCapabilities().zoom) return;
+            
+            try {
+                await videoTrack.applyConstraints({ 
+                    advanced: [{ zoom: parseFloat(value) }] 
+                });
+            } catch (e) {
+                // Ignorar erros de zoom
+            }
         }
 
         function handleFileSelect(event) {
             const file = event.target.files[0];
             if (!file) return;
 
-            const reader = new FileReader();
-            reader.onload = e => {
-                const image = new Image();
-                image.onload = () => {
-                    const canvas = document.createElement('canvas');
-                    const context = canvas.getContext('2d');
-                    canvas.width = image.width;
-                    canvas.height = image.height;
-                    context.drawImage(image, 0, 0, canvas.width, canvas.height);
-                    
-                    const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-                    const code = jsQR(imageData.data, imageData.width, imageData.height, {
-                        inversionAttempts: "dontInvert",
-                    });
-
-                    if (code) {
-                        handleScanSuccess(code.data);
-                    } else {
-                        const html5QrCodeFile = new Html5Qrcode("reader");
-                        html5QrCodeFile.scanFile(file, true)
-                            .then(decodedText => {
-                                handleScanSuccess(decodedText);
-                            })
-                            .catch(err => {
-                                alert("Nenhum QR Code ou código de barras válido encontrado na imagem.");
-                            });
-                    }
-                };
-                image.src = e.target.result;
-            };
-            reader.readAsDataURL(file);
+            showToast("Processando imagem...");
+            
+            const html5QrCodeFile = new Html5Qrcode("reader");
+            html5QrCodeFile.scanFile(file, true)
+                .then(decodedText => {
+                    handleScanSuccess(decodedText);
+                })
+                .catch(err => {
+                    showToast("❌ Nenhum código encontrado", true);
+                });
+            
             event.target.value = '';
         }
 
@@ -438,6 +634,7 @@
             resultContent.style.color = 'var(--on-surface)';
 
             document.getElementById('btn-copy').removeAttribute('disabled');
+            document.getElementById('btn-share').removeAttribute('disabled');
             
             const btnOpen = document.getElementById('btn-open');
             if (isValidUrl(text)) {
@@ -447,7 +644,7 @@
             }
 
             addToHistory(text);
-            showToast("Código lido com sucesso!");
+            showToast("✅ Código lido com sucesso!");
         }
 
         function isValidUrl(string) {
@@ -462,9 +659,9 @@
         function copyResult() {
             if (!lastScannedText) return;
             navigator.clipboard.writeText(lastScannedText).then(() => {
-                showToast("Copiado para a memória!");
+                showToast("✅ Copiado para a memória!");
             }).catch(err => {
-                console.error("Erro ao copiar:", err);
+                showToast("❌ Erro ao copiar", true);
             });
         }
 
@@ -474,10 +671,23 @@
             }
         }
 
+        function shareResult() {
+            if (!lastScannedText) return;
+            
+            if (navigator.share) {
+                navigator.share({
+                    title: 'Código lido',
+                    text: lastScannedText
+                }).catch(() => {});
+            } else {
+                copyResult();
+            }
+        }
+
         function addToHistory(text) {
             history = history.filter(item => item !== text);
             history.unshift(text);
-            if (history.length > 10) history.pop();
+            if (history.length > 15) history.pop();
             localStorage.setItem('helenio_reader_history', JSON.stringify(history));
             renderHistory();
         }
@@ -490,7 +700,7 @@
             }
             list.innerHTML = history.map(item => `
                 <li class="history-item">
-                    <span title="${item}">${item}</span>
+                    <span title="${item}">${item.length > 35 ? item.substring(0, 35) + '...' : item}</span>
                     <button class="btn btn-secondary" style="padding: 4px 8px; font-size: 0.75rem;" onclick="loadFromHistory('${item.replace(/'/g, "\\'")}')">Usar</button>
                 </li>
             `).join('');
@@ -504,12 +714,13 @@
             history = [];
             localStorage.removeItem('helenio_reader_history');
             renderHistory();
+            showToast("Histórico limpo");
         }
 
-        function showToast(message) {
+        function showToast(message, isError = false) {
             const toast = document.getElementById('toast');
             toast.textContent = message;
-            toast.classList.add('show');
+            toast.className = 'toast show' + (isError ? ' error' : '');
             setTimeout(() => {
                 toast.classList.remove('show');
             }, 2500);
